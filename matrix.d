@@ -8,14 +8,16 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-module dmatrix.matrix;
-
-import std.algorithm, std.math, std.random, std.stdio;
+import std.algorithm;
+import std.math; 
+import std.random;
+import std.stdio;
 import vector;
 
 struct Matrix(T, size_t S=4)
 {
     private alias Matrix!(T, S) mat;
+    private alias Vector!(T, S) vec;
 
     private T[S][S] A;
     
@@ -30,7 +32,7 @@ struct Matrix(T, size_t S=4)
     
     @property T[] array()
     {
-        T[] V = new T[4*4];
+        T[] V = new T[S*S];
         foreach(x; 0..S)
             foreach(y; 0..S)
                 V[x*S+y] = A[x][y];
@@ -44,7 +46,34 @@ struct Matrix(T, size_t S=4)
         return A[x][y] = v;
     }
     
-    mat opBinary(string op)(mat B)
+    ref mat opOpAssign(string op)(T B)
+    {
+        foreach(x; 0..S)
+            foreach(y; 0..S)
+                mixin("A[x][y] " ~ op ~ "= B;");
+        return this;
+    }
+    
+    ref mat opOpAssign(string op)(mat B)
+    {
+        static if (op == "*")
+        {
+            A = (this * B).A;
+            return this;
+        }
+        
+    }
+    
+    mat opBinary(string op)(T B)
+    {
+        mat R;
+        foreach(x; 0..S)
+            foreach(y; 0..S)
+                mixin("R.A[x][y] = A[x][y] " ~ op ~ " B;");
+        return R;
+    }
+    
+    vec opBinary(string op)(vec B)
     {
         static if (op == "*")
         {
@@ -52,6 +81,13 @@ struct Matrix(T, size_t S=4)
         }
     }
     
+    mat opBinary(string op)(mat B)
+    {
+        static if (op == "*")
+        {
+            return multiply(B);
+        }
+    }
     
     void zero()
     {
@@ -67,10 +103,20 @@ struct Matrix(T, size_t S=4)
     }
     
 
+    vec multiply(vec B)
+    {
+        vec R;
+        foreach(y; 0..S)
+        {
+            foreach(x; 0..S)
+                R[y] += A[x][y] * B[x];
+        }
+        return R;
+    }
+    
     mat multiply(mat B)
     {
-        mat C;
-        
+        mat R;
         foreach(x; 0..S)
         {
             foreach(y; 0..S)
@@ -78,12 +124,10 @@ struct Matrix(T, size_t S=4)
                 T[S] V;
                 foreach (i; 0..S)
                     V[i] = A[i][y] * B.A[x][i];
-                C.A[x][y] = reduce!"a+b"(V);
+                R.A[x][y] = reduce!"a+b"(V);
             }
         }
-        
-        return C;
-        
+        return R;
     }
     
     void print()
@@ -149,6 +193,8 @@ struct Matrix(T, size_t S=4)
     
 }
 
+alias Matrix!(float,2) mat2;
+alias Matrix!(float,3) mat3;
 alias Matrix!(float,4) mat4;
 
 unittest
@@ -174,4 +220,18 @@ unittest
     mat4 D = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
     mat4 E = [100, 99, 98, 97, 96, 95, 94, 93, 92, 91, 90, 89, 88, 87, 86, 85];
     assert((D*E).array == [2344, 2738, 3132, 3526, 2248, 2626, 3004, 3382, 2152, 2514, 2876, 3238, 2056, 2402, 2748, 3094]);
+    D *= A;
+    assert(D.array == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);
+    
+    // Test multiply by a scalar.
+    assert((D*2).array == [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30]);
+    
+    // Test add and assign.
+    mat2 F = [-1, 1, -2, 2];
+    F += 2;
+    assert(F.array == [1, 3, 0, 4]);
+    
+    // Test a matrix multiply with a vector.
+    vec4 G = [-4, 4, 4, 4];
+    assert((D*G).array == [96,104,112,120]);
 }

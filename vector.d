@@ -8,17 +8,20 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-module dmatrix.vector;
-
 import std.algorithm;
 import std.stdio;
+import matrix;
 
 struct Vector(T, size_t S=4)
 {
-    alias Vector!(T,S) vec;
-    private T[S] V;
+    private alias Vector!(T,S) vec;
+    private alias Matrix!(T,S) mat;
+    
+    private T[S] V = 0;
     
     this(T[S] B) { V = B; }
+    
+    @property T[] array() { return V; }
     
     static vec opCall(T[S] V)
     {
@@ -27,7 +30,7 @@ struct Vector(T, size_t S=4)
         return U;
     }
     
-    T opIndex(size_t i) { return V[i]; }
+    ref T opIndex(size_t i) { return V[i]; }
     T opIndexAssign(T v, size_t i) { return V[i] = v; }
  
     ref vec opOpAssign(string op)(T B)
@@ -136,5 +139,6 @@ unittest
     // Test cross product of perpendicular vectors.
     assert(vec3.cross(D, E).V == [0, 0, 1]);
     
-}
 
+    
+}
